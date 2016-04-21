@@ -1,0 +1,4 @@
+rootProject.name = 'lfc'
+include 'core'
+findProject(':core')?.name = 'lfc'
+
