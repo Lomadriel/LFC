@@ -31,7 +31,6 @@ jar {
 distributions {
     main {
         baseName = "core"
-
     }
 }
 
