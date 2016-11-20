@@ -98,7 +98,12 @@ public class EventDispatcher {
 		@SuppressWarnings("unchecked")
 		Class<Event<T>> eventClass = (Class<Event<T>>) event.getClass();
 
-		getListeners(eventClass).forEach(event::notify);
+		List<T> listeners;
+		synchronized (this.eventMap) {
+			listeners = new ArrayList<>(getListeners(eventClass));
+		}
+
+		listeners.forEach(event::notify);
 	}
 
 	private <T extends EventListener> List<T> getListeners(Class<? extends Event<T>> eventClass) {
