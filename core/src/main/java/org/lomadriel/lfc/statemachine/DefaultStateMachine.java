@@ -5,6 +5,7 @@ public class DefaultStateMachine implements StateMachine {
 
 	public DefaultStateMachine(State initialState) {
 		this.currentState = initialState;
+		this.currentState.onEnter();
 	}
 
 	/**
