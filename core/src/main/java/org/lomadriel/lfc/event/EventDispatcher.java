@@ -25,7 +25,6 @@ import java.util.EventListener;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This class is used to link event senders and event listeners.
@@ -35,10 +34,6 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class EventDispatcher {
 	private final Map<Class<? extends Event<?>>, List<? extends EventListener>> eventMap = new HashMap<>(10);
-	private final Map<Class<? extends Event<?>>, List<? extends EventListener>> flushMap = new HashMap<>(10);
-
-	private Boolean hasToFlushed = Boolean.FALSE;
-	private final ReentrantLock lock = new ReentrantLock();
 
 	EventDispatcher() {
 	}
@@ -78,24 +73,19 @@ public class EventDispatcher {
 	 * @param eventClass event's class
 	 * @param listener   listener to remove from the notification cycle.
 	 * @param <T>        listener's class, a listener must implement EventListener.
+	 * @return true if the event dispatcher contains the listener.
 	 */
-	public <T extends EventListener> void removeListener(Class<? extends Event<T>> eventClass, T listener) {
+	public <T extends EventListener> boolean removeListener(Class<? extends Event<T>> eventClass, T listener) {
 		assert (this.eventMap.containsKey(eventClass));
 
-		if (this.lock.tryLock()) {
-			synchronized (this.flushMap) {
-				List<T> listeners = getFlushListeners(eventClass);
-				listeners.add(listener);
-				this.hasToFlushed = Boolean.TRUE;
-			}
-		} else {
-			try {
-				List<T> listeners = getListeners(eventClass);
-				listeners.remove(listener);
-			} finally {
-				this.lock.unlock();
-			}
+		boolean removed;
+		List<T> listeners = getListeners(eventClass);
+
+		synchronized (this.eventMap) {
+			removed = listeners.remove(listener);
 		}
+
+		return removed;
 	}
 
 	/**
@@ -108,50 +98,20 @@ public class EventDispatcher {
 		@SuppressWarnings("unchecked")
 		Class<Event<T>> eventClass = (Class<Event<T>>) event.getClass();
 
-		this.lock.lock();
-		try {
-			getListeners(eventClass).forEach(event::notify);
-
-			if (this.hasToFlushed.booleanValue()) {
-				flush();
-			}
-		} finally {
-			this.lock.unlock();
-		}
+		getListeners(eventClass).forEach(event::notify);
 	}
 
 	private <T extends EventListener> List<T> getListeners(Class<? extends Event<T>> eventClass) {
-		@SuppressWarnings("unchecked")
-		List<T> listeners = (List<T>) this.eventMap.get(eventClass);
-		if (listeners == null) {
-			listeners = new ArrayList<>();
-			this.eventMap.put(eventClass, listeners);
-		}
-
-		return listeners;
-	}
-
-	private <T extends EventListener> List<T> getFlushListeners(Class<? extends Event<T>> eventClass) {
-		@SuppressWarnings("unchecked")
-		List<T> listeners = (List<T>) this.flushMap.get(eventClass);
-		if (listeners == null) {
-			listeners = new ArrayList<>();
-			this.flushMap.put(eventClass, listeners);
-		}
-
-		return listeners;
-	}
-
-	private void flush() {
-		for (Class<? extends Event<?>> aClass : this.flushMap.keySet()) {
-			List<? extends EventListener> listeners = this.eventMap.get(aClass);
-			if (listeners != null) {
-				listeners.removeAll(this.flushMap.get(aClass));
+		synchronized (this.eventMap) {
+			@SuppressWarnings("unchecked")
+			List<T> listeners = (List<T>) this.eventMap.get(eventClass);
+			if (listeners == null) {
+				listeners = new ArrayList<>();
+				this.eventMap.put(eventClass, listeners);
 			}
+
+			return listeners;
+
 		}
-
-		this.flushMap.clear();
-		this.hasToFlushed = Boolean.FALSE;
 	}
-
 }
