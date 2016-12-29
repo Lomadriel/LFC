@@ -1,5 +1,7 @@
 package org.lomadriel.lfc.statemachine;
 
+import java.lang.ref.WeakReference;
+
 /**
  * Defines a state of a state machine.
  *
@@ -7,21 +9,23 @@ package org.lomadriel.lfc.statemachine;
  * @see StateMachine
  * @since 0.2
  */
-public interface State {
+public abstract class State {
+	protected WeakReference<StateMachine> machine;
+
 	/**
 	 * This method is called when the state machine enters in this state.
 	 */
-	void onEnter();
+	protected abstract void onEnter();
 
 	/**
 	 * This method is called when the state machine is updated.
 	 */
-	void update();
+	protected abstract void update();
 
 	/**
 	 * This method is called when the state machine leaves this state.
 	 */
-	void onExit();
+	protected abstract void onExit();
 
 	/**
 	 * Returns the next state of the state machine.
@@ -30,5 +34,5 @@ public interface State {
 	 *
 	 * @return the next state of the state machine.
 	 */
-	State next();
+	protected abstract State next();
 }
