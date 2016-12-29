@@ -35,15 +35,15 @@ import java.util.Map;
 public class EventDispatcher {
 	private final Map<Class<? extends Event<?>>, List<? extends EventListener>> eventMap = new HashMap<>(10);
 
-	EventDispatcher() {
+	protected EventDispatcher() {
 	}
 
 	private static class EventDispatcherHolder {
-		static final EventDispatcher instance = new EventDispatcher();
+		static final EventDispatcher INSTANCE = new EventDispatcher();
 	}
 
 	public static EventDispatcher getInstance() {
-		return EventDispatcherHolder.instance;
+		return EventDispatcherHolder.INSTANCE;
 	}
 
 	/**
@@ -65,6 +65,19 @@ public class EventDispatcher {
 		}
 
 		return added;
+	}
+
+
+	/**
+	 * Adds a listener for the given event.
+	 *
+	 * @param eventClass event's class
+	 * @param listener   listener to notify when the event is fired.
+	 * @param <T>        listener's class, a listener must implement EventListener.
+	 * @return true if the listener have been added, false otherwise.
+	 */
+	public static <T extends EventListener> boolean registerListener(Class<? extends Event<T>> eventClass, T listener) {
+		return EventDispatcher.getInstance().addListener(eventClass, listener);
 	}
 
 	/**
@@ -89,6 +102,19 @@ public class EventDispatcher {
 	}
 
 	/**
+	 * Removes a listener for the given event.
+	 *
+	 * @param eventClass event's class
+	 * @param listener   listener to remove from the notification cycle.
+	 * @param <T>        listener's class, a listener must implement EventListener.
+	 * @return true if the event dispatcher contains the listener.
+	 */
+	public static <T extends EventListener> boolean unregisterListener(Class<? extends Event<T>> eventClass,
+	                                                                   T listener) {
+		return EventDispatcher.getInstance().removeListener(eventClass, listener);
+	}
+
+	/**
 	 * Notifies each listener which listen this event.
 	 *
 	 * @param event event to fire
@@ -104,6 +130,16 @@ public class EventDispatcher {
 		}
 
 		listeners.forEach(event::notify);
+	}
+
+	/**
+	 * Notifies each listener which listen this event.
+	 *
+	 * @param event event to fire
+	 * @param <T>   listener's class
+	 */
+	public static <T extends EventListener> void send(Event<T> event) {
+		EventDispatcher.getInstance().fire(event);
 	}
 
 	private <T extends EventListener> List<T> getListeners(Class<? extends Event<T>> eventClass) {
