@@ -20,6 +20,9 @@
 
 package org.lomadriel.lfc.event;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.ArrayList;
 import java.util.EventListener;
 import java.util.HashMap;
@@ -34,6 +37,8 @@ import java.util.Map;
  */
 public class EventDispatcher {
 	private final Map<Class<? extends Event<?>>, List<? extends EventListener>> eventMap = new HashMap<>(10);
+	private static final Logger LISTENER_LOGGER = LogManager.getLogger(EventDispatcher.class.getName() + "-listener");
+	private static final Logger EVENT_LOGGER = LogManager.getLogger(EventDispatcher.class.getName() + "-event");
 
 	protected EventDispatcher() {
 	}
@@ -62,6 +67,14 @@ public class EventDispatcher {
 			if (!listeners.contains(listener)) {
 				added = listeners.add(listener);
 			}
+		}
+
+		if (added) {
+			this.LISTENER_LOGGER.trace("Listener added, event: " + eventClass.getName()
+					+ ", listener: " + listener.getClass().getName());
+		} else {
+			this.LISTENER_LOGGER.warn("Listener already added, " + eventClass.getName()
+					+ ", listener: " + listener.getClass().getName());
 		}
 
 		return added;
@@ -98,6 +111,14 @@ public class EventDispatcher {
 			removed = listeners.remove(listener);
 		}
 
+		if (removed) {
+			this.LISTENER_LOGGER.trace("Listener removed, event: " + eventClass.getName()
+					+ ", listener: " + listener.getClass().getName());
+		} else {
+			this.LISTENER_LOGGER.warn("Listener already removed, " + eventClass.getName()
+					+ ", listener: " + listener.getClass().getName());
+		}
+
 		return removed;
 	}
 
@@ -129,6 +150,7 @@ public class EventDispatcher {
 			listeners = new ArrayList<>(getListeners(eventClass));
 		}
 
+		EVENT_LOGGER.trace("Firing " + eventClass.getName());
 		listeners.forEach(event::notify);
 	}
 
